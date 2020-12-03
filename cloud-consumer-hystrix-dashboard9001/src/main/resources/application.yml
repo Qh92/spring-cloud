@@ -1,0 +1,8 @@
+server:
+  port: 9001
+
+#hystrix dashboard Unable to connect to Command Metric Stream  在监控方还需要添加如下参数
+hystrix:
+  dashboard:
+    proxy-stream-allow-list: "*"
+
