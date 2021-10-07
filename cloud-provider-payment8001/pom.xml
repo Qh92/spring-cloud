@@ -42,6 +42,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-starter</artifactId>
+            <!-- 找到了用子类，没找到用父类 -->
             <version>1.1.10</version>
         </dependency>
         <!--mysql-connector-java-->

@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class MySelfRule {
     @Bean
     public IRule myRule(){
-        return new RandomRule();//定义为随机
+        //定义为随机
+        return new RandomRule();
     }
 }
