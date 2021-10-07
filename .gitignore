@@ -1,0 +1,7 @@
+#ignore file
+/classes/
+*/src/test/
+*/target/
+*/*.iml
+.idea
+*.iml
