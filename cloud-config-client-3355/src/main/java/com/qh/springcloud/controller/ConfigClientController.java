@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RefreshScope
 public class ConfigClientController {
+
+    /**
+     * 该值为github上的配置文件的值
+     */
     @Value("${config.info}")
     private String configInfo;
 

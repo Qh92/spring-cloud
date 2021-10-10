@@ -11,6 +11,13 @@ import reactor.core.publisher.Mono;
 
 import java.util.Date;
 
+/**
+ * 全局过滤器
+ *
+ * @author Qh
+ * @date 2021-10-09
+ * @version 1.0
+ */
 @Component
 @Slf4j
 public class MyLogGatewayFilter implements GlobalFilter, Ordered {
@@ -26,6 +33,10 @@ public class MyLogGatewayFilter implements GlobalFilter, Ordered {
         return chain.filter(exchange);
     }
 
+    /**
+     * 加载过滤器的顺序，值越小顺序越靠前
+     * @return
+     */
     @Override
     public int getOrder() {
         return 0;

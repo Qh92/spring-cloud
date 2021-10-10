@@ -18,7 +18,6 @@ public class PaymentHystrixMain8001 {
 
 
     /**
-     *
      * 此配置是为了服务器监控而配置，与服务器本身无关，springcloud升级后的坑
      * ServletRegistrationBean 因为springboot的默认路径不是"/hystrix.stream"
      * 只要在自己的项目里配置上下面的servlet就可以了

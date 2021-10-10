@@ -9,7 +9,7 @@ import org.springframework.web.client.RestTemplate;
 public class ApplicationContextConfig {
 
     @Bean
-    @LoadBalanced //如果自己写了负载均衡算法，要把Ribbon的LoadBalanced注解注释掉
+    //@LoadBalanced //如果自己写了负载均衡算法，要把Ribbon的LoadBalanced注解注释掉
     public RestTemplate getRestTemplate(){
         return new RestTemplate();
     }

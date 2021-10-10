@@ -74,9 +74,25 @@ SpringCloud是一篮子方案，所fa有的东西都给你包起来。
 
 
 
-## 3、订单-支付微服务
+## 3、订单-生产微服务
 
 约定 > 配置 > 编码
+
+### 服务注册：
+
+#### Eureka、Zookeeper、Consul、Nacos
+
+### 服务调用：
+
+#### Ribbon、LoadBalancer、OpenFeign
+
+### 服务降级/熔断：
+
+#### Hystrix、resilience4j、sentinel
+
+
+
+
 
 ### 工程说明：
 
@@ -92,7 +108,7 @@ SpringCloud是一篮子方案，所fa有的东西都给你包起来。
 
 如果子项目指定了版本号，那么会使用子项目中指定的jar版本。
 
-#### 2）支付模块8001
+#### 2）生产模块8001
 
 ![image-20211007132149303](assets\image-20211007132149303.png)
 
@@ -100,7 +116,7 @@ SpringCloud是一篮子方案，所fa有的东西都给你包起来。
 
 ![image-20211007132220227](assets\image-20211007132220227.png)
 
-消费模块与支付模块之间的RESTful调用采用 RestTemplate
+消费模块与生产模块之间的RESTful调用采用 Ribbon + RestTemplate
 
 ```java
 @Configuration
@@ -131,6 +147,8 @@ public CommonResult<Payment> getPayment(@PathVariable("id") Long id){
 将复用代码添加进公共模块
 
 ![image-20211007132307973](assets\image-20211007132307973.png)
+
+#### **==服务注册Eureka==**
 
 #### 5）Eureka Server端服务注册中心（单机版）
 
@@ -164,9 +182,9 @@ public class EurekaMain7001 {
 
 
 
-#### 6）支付模块8001注册进Eureka
+#### 6）生产模块8001注册进Eureka
 
-该模块为Eureka的Client端，修改支付模块8001
+该模块为Eureka的Client端，修改生产模块8001
 
 ①pom.xml，添加client端
 
@@ -340,7 +358,7 @@ public class EurekaMain7002 {
 
 ![image-20211007151009820](assets\image-20211007151009820.png)
 
-#### 9）将支付模块8001、消费模块80同时注册进Eureka Server
+#### 9）将生产模块8001、消费模块80同时注册进Eureka Server
 
 修改各个模块的yml即可
 
@@ -371,13 +389,13 @@ eureka:
 
 
 
-#### 10）支付模块集群
+#### 10）生产模块集群
 
-添加支付模块8002
+添加生产模块8002
 
 ![image-20211007152128931](assets\image-20211007152128931.png)
 
-配置同支付模块8001
+配置同生产模块8001
 
 访问可看见
 
@@ -421,7 +439,7 @@ public class ApplicationContextConfig {
 }
 ```
 
-现整个工程结构：服务注册中心和支付模块都为集群模式
+现整个工程结构：服务注册中心和生产模块都为集群模式
 
 ![image-20211007154421530](assets\image-20211007154421530.png)
 
@@ -486,7 +504,9 @@ scheme:http instanceId : payment8001 serviceId : CLOUD-PAYMENT-SERVICE host: 192
 
 
 
-#### 12）支付模块8004注册进zookeeper
+#### **==服务注册Zookeeper==**
+
+#### 12）生产模块8004注册进zookeeper
 
 ![image-20211007194321362](assets\image-20211007194321362.png)
 
@@ -603,7 +623,7 @@ zookeeper注册的结点为**临时结点**，如果将服务停了，一会后�
 
 ![image-20211007203427792](assets\image-20211007203427792.png)
 
-配置同支付模块8004
+配置同生产模块8004
 
 启动80，8004和80都注册进zookeeper
 
@@ -615,7 +635,9 @@ zookeeper注册的结点为**临时结点**，如果将服务停了，一会后�
 
 
 
-#### 13）支付模块8006注册进consul
+#### **==服务注册Consul==**
+
+#### 13）生产模块8006注册进consul
 
 ![image-20211007210950271](assets\image-20211007210950271.png)
 
@@ -636,6 +658,8 @@ zookeeper注册的结点为**临时结点**，如果将服务停了，一会后�
 ![image-20211007212108067](assets\image-20211007212108067.png)
 
 
+
+#### **==服务调用Ribbon==**
 
 #### 15）修改消费模块80的负载均衡Ribbon
 
@@ -670,6 +694,724 @@ public class OrderMain80 {
 ```
 
  
+
+#### 16）自定义一个轮询算法
+
+①修改生产模块8001、8002 的controller
+
+```java
+@GetMapping(value = "/payment/lb")
+public String getPaymentLB(){
+    return serverPort;
+};
+```
+
+②消费模块80 配置类去掉@LoadBalanced注解
+
+```java
+@Configuration
+public class ApplicationContextConfig {
+    @Bean
+    //@LoadBalanced //如果自己写了负载均衡算法，要把Ribbon的LoadBalanced注解注释掉
+    public RestTemplate getRestTemplate(){
+        return new RestTemplate();
+    }
+}
+```
+
+③消费模块80添加自定义的负载均衡算法
+
+```java
+public interface LoadBalancer {
+    ServiceInstance instance(List<ServiceInstance> serviceInstances);
+}
+@Component
+public class MyLB implements LoadBalancer{
+    private AtomicInteger atomicInteger = new AtomicInteger(0);
+
+    public final int getAndIncrement(){
+        int current;
+        int next;
+        do{
+            //得到当前值
+            current = this.atomicInteger.get();
+            next = current >= Integer.MAX_VALUE ? 0 : current + 1;
+        }while(!this.atomicInteger.compareAndSet(current,next));
+        System.out.println("******************第几次访问:次数next:"+next);
+        return next;
+    }
+    @Override
+    public ServiceInstance instance(List<ServiceInstance> serviceInstances) {
+        int index = getAndIncrement() % serviceInstances.size();
+        return serviceInstances.get(index);
+    }
+}
+```
+
+④消费模块80controller添加方法
+
+```java
+@Resource
+private LoadBalancer loadBalancer;
+@Resource
+private DiscoveryClient discoveryClient;
+
+@GetMapping(value = "/consumer/payment/lb")
+public String getPaymentLB(){
+    List<ServiceInstance> instances = discoveryClient.getInstances("CLOUD-PAYMENT-SERVICE");
+    if(instances == null || instances.size() <= 0){
+        return null;
+    }
+    ServiceInstance serviceInstance = loadBalancer.instance(instances);
+    URI uri = serviceInstance.getUri();
+    return restTemplate.getForObject(uri+"/payment/lb",String.class);
+}
+```
+
+
+
+#### **==服务调用openFeign==**
+
+#### 17）消费模块80采用openFeign服务调用
+
+##### openFeign客户端工程
+
+![image-20211008194639668](assets\image-20211008194639668.png)
+
+①pom.xml引入openfeign，openfeign自带ribbon负载均衡能力
+
+```xml
+<!--openfeign-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+```
+
+②主启动类添加注解@EnableFeignClients
+
+```java
+@SpringBootApplication
+@EnableFeignClients
+public class OrderFeignMain80 {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderFeignMain80.class,args);
+    }
+}
+```
+
+③调用方添加openfeign接口
+
+```java
+@Component
+//微服务名称，找哪个具体的微服务
+@FeignClient(value = "CLOUD-PAYMENT-SERVICE")
+public interface PaymentFeignService {
+    /**
+     * 调用对应的微服务的对外暴露的方法
+     */
+    @GetMapping(value = "/payment/get/{id}")
+    public CommonResult getPaymentById (@PathVariable("id") Long id);
+
+    @GetMapping(value = "/payment/feign/timeout")
+    public String paymentFeignTimeout();
+}
+```
+
+
+
+##### 服务提供方超时openfeign策略
+
+openfeign客户端默认只等待一秒，如果服务端处理需要超过1s，导致feign客户端不想等待了，直接返回报错
+
+![image-20211008200228449](assets\image-20211008200228449.png)
+
+解决办法，openfeign客户端设置超时时间
+
+```yaml
+#设置feign客户端超时时间(openFeign默认支持ribbon)
+ribbon:
+  #指的是建立连接所用的时间，适用于网络状况正常的情况下，两端连接所用的时间
+  ReadTimeout: 5000
+  #建立连接后从服务器读取到可用资源所用时间
+  ConnectTimeout: 5000
+```
+
+![image-20211008200540350](assets\image-20211008200540350.png)
+
+
+
+##### openfeign日志打印功能
+
+①编写日志打印级别
+
+```java
+@Configuration
+public class FeignConfig {
+    @Bean
+    Logger.Level feignLoggerLevel(){
+        return Logger.Level.FULL;
+    }
+}
+```
+
+![image-20211008201327141](assets\image-20211008201327141.png)
+
+②yml配置中配置
+
+```yaml
+logging:
+  level:
+    #feign日志以什么级别监控哪个接口
+    com.qh.springcloud.service.PaymentFeignService: debug
+```
+
+调用日志：
+
+```xml
+: 调用服务开始
+: [PaymentFeignService#getPaymentById] ---> GET http://CLOUD-PAYMENT-SERVICE/payment/get/1 HTTP/1.1
+: [PaymentFeignService#getPaymentById] ---> END HTTP (0-byte body)
+: [PaymentFeignService#getPaymentById] <--- HTTP/1.1 200 (5ms)
+: [PaymentFeignService#getPaymentById] connection: keep-alive
+: [PaymentFeignService#getPaymentById] content-type: application/json
+: [PaymentFeignService#getPaymentById] date: Fri, 08 Oct 2021 12:15:53 GMT
+: [PaymentFeignService#getPaymentById] keep-alive: timeout=60
+: [PaymentFeignService#getPaymentById] transfer-encoding: chunked
+: [PaymentFeignService#getPaymentById] 
+: [PaymentFeignService#getPaymentById] {"code":200,"message":"查询数据成功,serverPort:8001","data":{"id":1,"serial":"test"}}
+: [PaymentFeignService#getPaymentById] <--- END HTTP (91-byte body)
+```
+
+
+
+#### **==Hystrix实现服务降级熔断限流==**
+
+Hystrix可以用于调用方和提供方，但是**Hystrix一般用于调用方**
+
+#### 18）生产模块8001添加Hystrix
+
+![image-20211008211817735](assets\image-20211008211817735.png)
+
+##### jmeter压力测试
+
+![image-20211008213531615](assets\image-20211008213531615.png)
+
+![image-20211008213820521](assets\image-20211008213820521.png)
+
+结论：http://localhost:8001/payment/hystrix/ok/1 访问也会变慢
+
+
+
+#### 19）消费模块80添加Hystrix
+
+![image-20211008215142412](assets\image-20211008215142412.png)
+
+
+
+压力测试后，消费端进行测试 http://localhost/consumer/payment/hystrix/ok/1
+
+要么转圈圈等待，要么消费端报超时错误
+
+![image-20211008223338374](assets\image-20211008223338374.png)
+
+生产者消费者添加Hystrix进行服务降级/熔断/限流
+
+##### 生产者8001使用Hystrix进行服务降级
+
+①主启动类添加启动注解@EnableCircuitBreaker
+
+```java
+@SpringBootApplication
+@EnableEurekaClient
+@EnableCircuitBreaker
+public class PaymentHystrixMain8001 {
+    public static void main(String[] args) {
+        SpringApplication.run(PaymentHystrixMain8001.class,args);
+    }
+}
+```
+
+②service添加@HystrixCommand 进行服务降级
+
+```java
+	/**
+     * paymentInfo_Timeout方法出问题了,paymentInfo_TimeoutHandler兜底处理 运行异常与超时异常都会走这个兜底方法
+     * 3秒钟以内就是正常的业务逻辑，超过3秒就服务降级
+     * @param id
+     * @return
+     */
+    @HystrixCommand(fallbackMethod = "paymentInfo_TimeoutHandler",commandProperties = {
+            @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds",value = "3000")
+    })
+    public String paymentInfo_Timeout(Integer id){
+
+        //int age = 10 / 0;
+        int timeout = 5000;
+        try {
+            TimeUnit.MILLISECONDS.sleep(timeout);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return "线程池：  "+Thread.currentThread().getName()+"   paymentInfo_Timeout,id: "+id+"  成功输出！！！！！！,耗时"+timeout+"毫秒";
+    }
+
+    /**
+     * 降级（兜底）方法
+     * @param id
+     * @return
+     */
+    public String paymentInfo_TimeoutHandler(Integer id){
+        return "线程池：  "+Thread.currentThread().getName()+"   系统繁忙，请稍后重试,id: "+id+"   ^_^";
+    }
+```
+
+测试超时/异常情况，进入paymentInfo_TimeoutHandler降级方法，此时处理的线程池是Hystrix的线程池：
+
+![image-20211008231757758](assets\image-20211008231757758.png)
+
+
+
+##### 消费者80使用Hystrix进行服务降级
+
+①修改yml
+
+```yaml
+feign:
+  hystrix:
+    enabled: true  #true 在feign中开启hystrix,如果处理自身的容错就开启。开启方式与生产端不一样
+```
+
+②主启动类添加启用注解@EnableHystrix
+
+```java
+@SpringBootApplication
+@EnableFeignClients
+@EnableHystrix
+public class OrderHystrixMain80 {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderHystrixMain80.class,args);
+    }
+}
+```
+
+③修改调用service方法添加注解
+
+```java
+	@GetMapping(value = "/consumer/payment/hystrix/timeout/{id}")
+    @HystrixCommand(fallbackMethod = "paymentInfo_TimeoutHandler",commandProperties = {
+            @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds",value = "1500")  //1.5秒钟以内就是正常的业务逻辑
+    })
+    public String paymentInfo_Timeout(@PathVariable("id")  Integer id){
+        //int age = 10 / 0;
+        String result = paymentHystrixService.paymentInfo_Timeout(id);
+        log.info("*************result："+result);
+        return result;
+    }
+    public String paymentInfo_TimeoutHandler(@PathVariable("id")  Integer id){
+        return "我是消费者80,对方支付系统繁忙请10秒后再试或者自己运行出错请检查自己   ^_^";
+    }
+```
+
+测试：
+
+消费方1.5秒超时，生产方5秒超时。异常情况。
+
+![image-20211008234019939](assets\image-20211008234019939.png)
+
+
+
+##### 解决代码膨胀问题：
+
+全局降级方法设置，类上添加@DefaultProperties
+
+```java
+@RestController
+@Slf4j
+@DefaultProperties(defaultFallback = "payment_global_fallbackMethod") //全局兜底方法
+public class OrderHystrixController {
+    /**
+     * 全局降级方法，配合@DefaultProperties注解使用
+     * @return
+     */
+    public String payment_global_fallbackMethod(){
+        return "global异常处理信息，请稍后再试  ^_^";
+    }
+}    
+```
+
+##### 解决业务混乱问题：
+
+①新增调用接口的实现类
+
+````java
+@Component
+public class PaymentFallbackService implements PaymentHystrixService{
+    @Override
+    public String paymentInfo_OK(Integer id) {
+        return "---------PaymentFallbackService fall back paymentInfo_OK,^ ^,";
+    }
+
+    @Override
+    public String paymentInfo_Timeout(Integer id) {
+        return "---------PaymentFallbackService fall back paymentInfo_Timeout,^ ^,";
+    }
+}
+````
+
+②接口的@FeignClient注解添加 fallback属性
+
+```java
+@Component
+@FeignClient(value = "HYSTRIX-PAYMENT-SERVICE",fallback = PaymentFallbackService.class)//服务降级交给 PaymentFallbackService来处理
+public interface PaymentHystrixService {
+
+    @GetMapping(value = "/payment/hystrix/ok/{id}")
+    public String paymentInfo_OK(@PathVariable("id")  Integer id);
+
+    @GetMapping(value = "/payment/hystrix/timeout/{id}")
+    public String paymentInfo_Timeout(@PathVariable("id")  Integer id);
+}
+```
+
+测试：停掉生产者8001模块后再次访问
+
+![image-20211009001407808](assets\image-20211009001407808.png)
+
+
+
+##### 生产者8001使用Hystrix进行服务熔断
+
+```java
+	/**
+     * 服务熔断
+     * 以下配置的意思：在20秒钟内，如果请求10次，失败了超过60%就熔断，不能使用。
+     * 休眠10秒后，会将断路器置为半打开状态，尝试熔断的请求命令。如果依然失败就将断路器继续设置为打开状态，如果成功就设置为关闭状态。
+     */
+    @HystrixCommand(fallbackMethod = "paymentCircuitBreaker_fallback",commandProperties = {
+            @HystrixProperty(name = "circuitBreaker.enabled",value = "true"),  //是否开启断路器
+            @HystrixProperty(name = "circuitBreaker.requestVolumeThreshold",value = "10"),   //请求次数
+            @HystrixProperty(name = "metrics.rollingStats.timeInMilliseconds",value = "20000"),//滚动时间
+            @HystrixProperty(name = "circuitBreaker.sleepWindowInMilliseconds",value = "10000"),  //休眠时间窗
+            @HystrixProperty(name = "circuitBreaker.errorThresholdPercentage",value = "60"), //失败率达到多少后跳闸
+    })
+    public String paymentCircuitBreaker( Integer id){
+        if (id < 0){
+            throw new RuntimeException("*****id 不能负数");
+        }
+        String serialNumber = IdUtil.simpleUUID();
+
+        return Thread.currentThread().getName()+"\t"+"调用成功,流水号："+serialNumber;
+    }
+    public String paymentCircuitBreaker_fallback( Integer id){
+        return "id 不能负数，请稍候再试,(┬＿┬)/~~     id: " +id;
+    }
+```
+
+
+
+
+
+#### 20）Hystrix dashboard仪表盘
+
+9001模块监控生产模块8001
+
+![image-20211009140710458](assets\image-20211009140710458.png)
+
+生产模块8001添加
+
+```java
+@SpringBootApplication
+@EnableEurekaClient
+@EnableCircuitBreaker
+public class PaymentHystrixMain8001 {
+    public static void main(String[] args) {
+        SpringApplication.run(PaymentHystrixMain8001.class,args);
+    }
+    /**
+     * 此配置是为了服务器监控而配置，与服务器本身无关，springcloud升级后的坑
+     * ServletRegistrationBean 因为springboot的默认路径不是"/hystrix.stream"
+     * 只要在自己的项目里配置上下面的servlet就可以了
+     */
+    @Bean
+    public ServletRegistrationBean getServlet(){
+        HystrixMetricsStreamServlet streamServlet = new HystrixMetricsStreamServlet();
+        ServletRegistrationBean registrationBean = new ServletRegistrationBean(streamServlet);
+        registrationBean.setLoadOnStartup(1);
+        registrationBean.addUrlMappings("/hystrix.stream");
+        registrationBean.setName("HystrixMetricsStreamServlet");
+        return registrationBean;
+    }
+}
+```
+
+
+
+#### ==Gateway网关==
+
+#### 21）网关gateway
+
+![image-20211009171956665](assets\image-20211009171956665.png)
+
+从**网关实现负载均衡**，在**uri处不能把地址写死，要写微服务名称**
+
+```yaml
+spring:
+  application:
+    name: cloud-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true #开启从注册中心动态创建路由的功能，利用微服务名进行路由
+      routes:
+        - id: payment_routh #payment_route    #路由的ID，没有固定规则但要求唯一，建议配合服务名
+          #uri: http://localhost:8001          #匹配后提供服务的路由地址
+          uri: lb://cloud-payment-service #匹配后提供服务的路由地址
+          predicates:
+            - Path=/payment/get/**         # 断言，路径相匹配的进行路由
+
+        - id: payment_routh2 #payment_route    #路由的ID，没有固定规则但要求唯一，建议配合服务名
+          #uri: http://localhost:8001          #匹配后提供服务的路由地址
+          uri: lb://cloud-payment-service #匹配后提供服务的路由地址
+          predicates:
+            - Path=/payment/lb/**         # 断言，路径相匹配的进行路由
+            #- After=2020-10-13T23:01:03.716+08:00[Asia/Shanghai]
+            #- Cookie=username,qh
+            #curl http://localhost:9527/payment/lb --cookie "username=qh"  curl模拟发送get请求
+            #- Header=X-Request-Id, \d+  # 请求头要有X-Request-Id属性并且值为整数的正则表达式
+            #curl http://localhost:9527/payment/lb -H "X-Request-Id:123"
+            #- After=2020-02-21T15:51:37.485+08:00[Asia/Shanghai]
+            #- Cookie=username,zzyy
+            #- Header=X-Request-Id, \d+  # 请求头要有X-Request-Id属性并且值为整数的正则表达式
+```
+
+
+
+#### ==配置中心Config==
+
+#### 22）config配置文件服务端
+
+![image-20211009194340122](assets\image-20211009194340122.png)
+
+
+
+#### 23）config配置文件客户端
+
+![image-20211009204042554](assets\image-20211009204042554.png)
+
+
+
+github修改config配置文件，3344服务端立即刷新，3355客户端不能立即读取到修改的配置文件信息。
+
+解决办法：**客户端的动态刷新**
+
+①添加@RefreshScope注解
+
+```java
+@RestController
+@RefreshScope
+public class ConfigClientController {
+
+    /**
+     * 该值为github上的配置文件的值
+     */
+    @Value("${config.info}")
+    private String configInfo;
+
+    @GetMapping("/configInfo")
+    public String getConfigInfo()
+    {
+        return configInfo;
+    }
+}
+```
+
+②yml添加如下配置
+
+```yaml
+# 暴露监控端点，客户端动态刷新
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+```
+
+
+
+#### ==消息总线Bus==
+
+#### 24）新增一个config客户端3366
+
+![image-20211009213618007](assets\image-20211009213618007.png)
+
+##### config配置文件服务端3344整合Bus和MQ
+
+①引入pom文件
+
+```xml
+<!--添加消息总线RabbitMQ支持-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-bus-amqp</artifactId>
+</dependency>
+```
+
+②添加yml配置
+
+```yaml
+spring:
+  application:
+    name:  cloud-config-center #注册进Eureka服务器的微服务名
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/Qh92/springcloud-config.git #GitHub上面的git仓库名字
+          ####搜索目录
+          search-paths:
+            - springcloud-config
+          skip-ssl-validation: true
+      ####读取分支
+      label: main
+  #rabbitmq相关配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  
+#rabbitmq相关配置,暴露bus刷新配置的端点
+management:
+  endpoints: #暴露bus刷新配置的端点
+    web:
+      exposure:
+        include: 'bus-refresh'  
+```
+
+
+
+##### config配置文件客户端3355添加消息总线的支持
+
+```xml
+<!--添加消息总线RabbitMQ支持-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-bus-amqp</artifactId>
+</dependency>
+```
+
+```yaml
+spring:
+  application:
+    name: config-client
+  cloud:
+    #Config客户端配置
+    config:
+      label: main #分支名称
+      name: config #配置文件名称
+      profile: dev #读取后缀名称   上述3个综合：main分支上config-dev.yml的配置文件被读取http://config-3344.com:3344/main/config-dev.yml
+      uri: http://config-3344.com:3344 #配置中心地址k
+
+  #rabbitmq相关配置 15672是Web管理界面的端口；5672是MQ访问的端口
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+```
+
+##### config配置文件客户端3366添加消息总线的支持
+
+同上
+
+
+
+
+
+#### ==SpringCloud Stream==
+
+#### 25）消息提供方8801
+
+![image-20211010132545043](assets\image-20211010132545043.png)
+
+#### 26）消息消费方8802
+
+![image-20211010134552296](assets\image-20211010134552296.png)
+
+#### 27）消息消费方8803
+
+![image-20211010152807373](assets\image-20211010152807373.png)
+
+
+
+#### ==链路追踪Sleuth+Zipkin==
+
+#### 28）监控生产者8001
+
+①添加pom
+
+```xml
+<!--包含了sleuth+zipkin-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-zipkin</artifactId>
+</dependency>
+```
+
+
+
+②修改yml
+
+```yaml
+spring:
+  application:
+    #应用名称
+    name: cloud-payment-service
+  #监控该微服务
+  zipkin:
+    base-url: http://localhost:9411
+    sleuth:
+      sampler:
+      #采样率值介于 0 到 1 之间，1 则表示全部采集
+      probability: 1
+```
+
+
+
+③修改controller
+
+```java
+	/**
+     * 链路测试
+     * @return
+     */
+    @GetMapping("/payment/zipkin")
+    public String paymentZipkin() {
+        return "hi ,i'am paymentzipkin server fall back，welcome to atguigu，O(∩_∩)O哈哈~";
+    }
+```
+
+
+
+#### ==SpringCloud Alibaba==
+
+#### 29）生产者9001、9002，消费者83
+
+![image-20211010210306211](assets\image-20211010210306211.png)
+
+
+
+![image-20211010210324586](assets\image-20211010210324586.png)
+
+
+
+![image-20211010210341993](assets\image-20211010210341993.png)
+
+
+
+
 
 
 
