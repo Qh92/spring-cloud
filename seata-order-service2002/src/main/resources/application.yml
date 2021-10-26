@@ -1,0 +1,48 @@
+server:
+  port: 2002
+
+spring:
+  application:
+    name: seata-storage-service
+  cloud:
+#    alibaba:
+#      seata:
+#        tx-service-group: fsp_tx_group
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://192.168.116.129:3306/seata_storage?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
+    username: root
+    password: root
+
+logging:
+  level:
+    io:
+      seata: info
+
+mybatis:
+  mapperLocations: classpath:mapper/*.xml
+
+#seata配置
+seata:
+  enabled: true
+  # 你的服务名称
+  application-id: ${spring.application.name}
+  #这里的名字与seata服务端的file.conf中vgroup_mapping.my_test_tx_group = "seata-server"相同
+  tx-service-group: SEATA
+  # 开启数据源自动代理
+  enable-auto-data-source-proxy: true
+  #  可以指定动态代理
+  #  use-jdk-proxy: false
+  service:
+    vgroup-mapping:
+      #这里对应端的file.conf中vgroup-mapping.my_test_tx_group = "seata-server"
+      my_test_tx_group: SEATA
+    grouplist:
+      default: 127.0.0.1:8091
+  config:
+    type: file
+    file:
+      name: file.conf
