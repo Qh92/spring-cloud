@@ -6,18 +6,18 @@ spring:
     #应用名称
     name: cloud-payment-service
   #监控该微服务
-  zipkin:
-    base-url: http://localhost:9411
-    sleuth:
-      sampler:
-      #采样率值介于 0 到 1 之间，1 则表示全部采集
-      probability: 1
+#  zipkin:
+#    base-url: http://localhost:9411
+#    sleuth:
+#      sampler:
+#      #采样率值介于 0 到 1 之间，1 则表示全部采集
+#      probability: 1
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource            # 当前数据源操作类型
     driver-class-name: org.gjt.mm.mysql.Driver              # mysql驱动包
-    url: jdbc:mysql://192.168.116.129:3306/springcloud?useUnicode=true&characterEncoding=utf-8&useSSL=false #useSSL=false mysql的安全加固
+    url: jdbc:mysql://47.106.194.106:3306/springcloud?useUnicode=true&characterEncoding=utf-8&useSSL=false #useSSL=false mysql的安全加固
     username: root
-    password: root
+    password: 123456
 
 eureka:
   client:
