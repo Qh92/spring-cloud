@@ -5,9 +5,9 @@ spring:
   application:
     name: seata-storage-service
   cloud:
-#    alibaba:
-#      seata:
-#        tx-service-group: fsp_tx_group
+    alibaba:
+      seata:
+        tx-service-group: qh_test
     nacos:
       discovery:
         server-addr: localhost:8848
@@ -31,7 +31,7 @@ seata:
   # 你的服务名称
   application-id: ${spring.application.name}
   #这里的名字与seata服务端的file.conf中vgroup_mapping.my_test_tx_group = "seata-server"相同
-  tx-service-group: SEATA
+  tx-service-group: qh_test
   # 开启数据源自动代理
   enable-auto-data-source-proxy: true
   #  可以指定动态代理
@@ -39,7 +39,7 @@ seata:
   service:
     vgroup-mapping:
       #这里对应端的file.conf中vgroup-mapping.my_test_tx_group = "seata-server"
-      my_test_tx_group: SEATA
+      my_test_tx_group: qh_test
     grouplist:
       default: 127.0.0.1:8091
   config:

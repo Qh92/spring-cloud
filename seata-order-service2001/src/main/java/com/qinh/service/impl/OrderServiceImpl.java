@@ -5,6 +5,7 @@ import com.qinh.domain.Order;
 import com.qinh.service.AccountService;
 import com.qinh.service.OrderService;
 import com.qinh.service.StorageService;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class OrderServiceImpl implements OrderService {
 
 
     @Override
+    @GlobalTransactional(name = "qh_test",rollbackFor = Exception.class)
     public void create(Order order) {
         log.info("开始新建订单......");
         orderDao.create(order);
