@@ -18,8 +18,8 @@ eureka:
     service-url:
       #defaultZone: http://localhost:7001/eureka
       defaultZone: http://eureka7001.com:7001/eureka,http://eureka7002.com:7002/eureka #集群
+
   instance:
-    # 新增元数据
     metadata-map:
-      name: normal
+      name: qinhao
       version: v1

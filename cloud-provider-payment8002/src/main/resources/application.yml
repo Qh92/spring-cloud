@@ -34,6 +34,13 @@ eureka:
     #Eureka服务端在收到最后一次心跳后等待时间上限，单位为秒（默认是90秒），超时将剔除服务
     lease-expiration-duration-in-seconds: 2
 
+    # eureka client自定义元数据区，自定义key - value
+    # 可以动态修改元数据 发送put请求可以修改
+    # put http://localhost:7001/eureka/apps/CLOUD-PAYMENT-SERVICE/payment8002/metadata?name=qinhao
+    metadata-map:
+      version: v2
+      name: allen
+
 mybatis:
   mapperLocations: classpath:mapper/*.xml
   type-aliases-package: com.qh.springcloud.entities    # 所有Entity别名类所在包
