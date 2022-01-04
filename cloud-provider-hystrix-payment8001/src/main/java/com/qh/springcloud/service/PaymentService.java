@@ -49,6 +49,7 @@ public class PaymentService {
      * 服务熔断
      * 以下配置的意思：在20秒钟内，如果请求10次，失败了超过60%就熔断，不能使用。
      * 休眠10秒后，会将断路器置为半打开状态，尝试熔断的请求命令。如果依然失败就将断路器继续设置为打开状态，如果成功就设置为关闭状态。
+     * 配置项：HystrixCommandProperties
      */
     @HystrixCommand(fallbackMethod = "paymentCircuitBreaker_fallback",commandProperties = {
             @HystrixProperty(name = "circuitBreaker.enabled",value = "true"),  //是否开启断路器
