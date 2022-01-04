@@ -32,12 +32,12 @@ public class CustomChooseRule implements ICustomRule {
                     return instance;
                 }
             }
-        }
-
-        for (ServiceInstance instance : instances) {
-            String name = instance.getMetadata().get("name");
-            if (username.equals(name)) {
-                return instance;
+        }else {
+            for (ServiceInstance instance : instances) {
+                String name = instance.getMetadata().get("name");
+                if (username.equals(name)) {
+                    return instance;
+                }
             }
         }
 

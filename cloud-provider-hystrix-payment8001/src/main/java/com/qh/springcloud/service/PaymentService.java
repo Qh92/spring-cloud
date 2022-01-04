@@ -26,7 +26,7 @@ public class PaymentService {
     })
     public String paymentInfo_Timeout(Integer id){
 
-        //int age = 10 / 0;
+        int age = 10 / 0;
         int timeout = 3000;
         try {
             TimeUnit.MILLISECONDS.sleep(timeout);
