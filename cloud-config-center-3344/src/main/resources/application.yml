@@ -15,6 +15,19 @@ spring:
           skip-ssl-validation: true
       ####读取分支
       label: main
+#  kafka:
+#    bootstrap-servers: 47.106.194.106:9092
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#    consumer:
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      auto:
+#        offset:
+#          reset: earliest
+#      auto-commit-interval: 1000
+#      enable-auto-commit: true
   #rabbitmq相关配置
 #  rabbitmq:
 #    host: localhost
@@ -33,6 +46,7 @@ management:
   endpoints: #暴露bus刷新配置的端点
     web:
       exposure:
+#        include: '*'
         include: 'bus-refresh'
 
 

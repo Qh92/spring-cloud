@@ -1,15 +1,16 @@
 package org.springcloud;
 
-/**
- * @author Qh
- * @version 1.0
- * @date 2020-12-03-23:29
- */
+
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
+/**
+ * @author Qh
+ * @version 1.0
+ * @date 2020-12-03-23:29
+ */
 
 @EnableDiscoveryClient
 @SpringBootApplication

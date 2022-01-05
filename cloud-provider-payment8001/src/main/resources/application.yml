@@ -49,3 +49,11 @@ mybatis:
   type-aliases-package: com.qh.springcloud.entities    # 所有Entity别名类所在包
 
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    shutdown:
+      enabled: true
