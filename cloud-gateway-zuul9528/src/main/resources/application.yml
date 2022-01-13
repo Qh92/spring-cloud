@@ -1,0 +1,53 @@
+# 基础
+# 演示功能：
+# 1、默认。
+# 2、网关负载均衡。
+# 3、路由端点
+
+#api-driver: 
+#  ribbon: 
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+server:
+  port: 9528
+
+spring:
+  application:
+    name: cloud-gateway-zuul
+
+#注册中心
+eureka:
+  instance:
+    hostname: cloud-gateway-service
+  client: #服务提供者provider注册进eureka服务列表内
+    service-url:
+      register-with-eureka: true
+      fetch-registry: true
+      defaultZone: http://eureka7001.com:7001/eureka,http://eureka7002.com:7002/eureka
+
+
+zuul:
+  routes:
+    #此处名字随便取
+    custom-zuul-name:
+      path: /zuul-custom-name/**
+      service-id: cloud-payment-service
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      ##默认是never
+      show-details: ALWAYS
+      enabled: true
+    routes: 
+      enabled: true
+        
+#logging:
+#  level:
+#    com.netflix: debug
+#    org.springframework: DEBUG

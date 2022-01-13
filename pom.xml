@@ -41,6 +41,7 @@
     <module>seata-order-service2002</module>
       <module>seata-order-service2003</module>
       <module>cloud-consumer-order8081</module>
+      <module>cloud-gateway-zuul9528</module>
   </modules>
 
 
