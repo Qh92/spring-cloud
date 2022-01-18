@@ -4,6 +4,10 @@ server:
 eureka:
   instance:
     hostname: eureka7001.com #eureka服务端的实例名称
+    # 心跳间隔。默认30秒
+    lease-renewal-interval-in-seconds: 10
+    # 服务过期时间配置,超过这个时间没有接收到心跳EurekaServer就会将这个实例剔除
+    lease-expiration-duration-in-seconds: 30
   client:
     #false表示不向注册中心注册自己
     register-with-eureka: true
@@ -17,6 +21,7 @@ eureka:
   server:
     # false关闭自我保护机制，保证不可用服务被及时剔除，默认为true
     enable-self-preservation: true
+    # 剔除失效服务间隔,单位毫秒
     eviction-interval-timer-in-ms: 2000
 
 
